@@ -6,7 +6,7 @@
 /*   By: cfelbacq <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2016/04/30 12:16:48 by cfelbacq          #+#    #+#             */
-/*   Updated: 2016/04/30 14:33:32 by cfelbacq         ###   ########.fr       */
+/*   Updated: 2016/05/13 16:15:55 by cfelbacq         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,10 +18,13 @@
 #include <termcap.h>
 #include <stdlib.h>
 #include "libft/libft.h"
+#include <term.h>
 
 typedef	struct	s_node
 {
 	char *data;
+	int		cursor_on;
+	int		highlight;
 	struct s_node *next;
 	struct s_node *prev;
 }				t_node;
