@@ -6,7 +6,7 @@
 /*   By: cfelbacq <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2016/04/25 13:47:43 by cfelbacq          #+#    #+#             */
-/*   Updated: 2016/05/13 16:15:52 by cfelbacq         ###   ########.fr       */
+/*   Updated: 2016/06/01 15:30:54 by cfelbacq         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,8 +38,8 @@ void	print_underline(char *str, int highlight)
 	char *res2;
 	char *res3;
 
-	res2 = tgetstr("so", NULL);
-	res3 = tgetstr("se", NULL);
+	res2 = tgetstr("mr", NULL);
+	res3 = tgetstr("me", NULL);
 	res = tgetstr("us", NULL);
 	res1 = tgetstr("ue", NULL);
 	tputs(res, 0, my_outc);
@@ -58,11 +58,31 @@ void	print_highlight(char *str)
 	char *res2;
 	char *res3;
 
-	res = tgetstr("so", NULL);
-	res1 = tgetstr("se", NULL);
+	res = tgetstr("mr", NULL);
+	res1 = tgetstr("me", NULL);
 	tputs(res, 0, my_outc);
 	ft_putstr(str);
-	tputs(res, 0, my_outc);
+	tputs(res1, 0, my_outc);
+}
+
+void	cursor_motion(int nb_li)
+{
+	char *res;
+	char *res1;
+	char *res2;
+	int i;
+
+	i = 0;
+	res = tgetstr("cm", NULL);
+	res1 = tgetstr("cr", NULL);
+	res2 = tgetstr("up", NULL);
+	tputs(tgoto(res, 0, 0), 0, my_outc);
+	tputs(res1, 0, my_outc);
+	while (i < nb_li)
+	{
+		tputs(res2, 0, my_outc);
+		i++;
+	}
 }
 
 void	show_list(t_node *list, t_dlist* feature, char *name_term, int len_max_word)
@@ -85,10 +105,7 @@ void	show_list(t_node *list, t_dlist* feature, char *name_term, int len_max_word
 		if (i % nb_word_max_in_line == 0 && i != 0)
 			ft_putchar('\n');
 		if (list->cursor_on == 1)
-		{
-			ft_putchar('a');
 			print_underline(list->data, list->highlight);
-		}
 		else
 		{
 			if (list->highlight == 1)
@@ -105,6 +122,7 @@ void	show_list(t_node *list, t_dlist* feature, char *name_term, int len_max_word
 		j = 0;
 		i++;
 	}
+	cursor_motion(n_li);
 }
 
 void	print_list(t_node *list)
@@ -124,6 +142,8 @@ t_node	*get_list(t_node *list, char *str)
 	new->prev = list;
 	new->data = ft_strnew(ft_strlen(str) + 1);
 	new->data = ft_strcpy(new->data, str);
+	new->cursor_on = 0;
+	new->highlight = 0;
 	new->next = NULL;
 	return (new);
 }
@@ -155,6 +175,7 @@ t_node	*init_list(int argc, char **argv)
 	list->data = ft_strnew(ft_strlen(argv[i]) + 1);
 	list->data = ft_strcpy(list->data, argv[i]);
 	list->cursor_on = 1;
+	list->highlight = 0;
 	list->next = NULL;
 	tmp = list;
 	while (++i < argc)
@@ -185,7 +206,24 @@ t_node	*search_cursor(t_node *list)
 	return (list);
 }
 
-int		get_key(t_node **list)
+void	del_node(t_node **list, t_dlist ***feature_list)
+{
+	t_node *tmp;
+	t_node *tmp1;
+	t_dlist *tmp_d;
+
+	tmp_d = **feature_list;
+	tmp = *list;
+	tmp1 = NULL;
+	if (tmp->prev == NULL)
+	{
+		tmp->next->prev = NULL;
+		tmp_d->head = tmp->next;
+		tmp_d->length--;
+	}
+}
+
+int		get_key(t_node **list, t_dlist **feature_list)
 {
 	char buff[3];
 	char *res;
@@ -202,7 +240,6 @@ int		get_key(t_node **list)
 		{
 			if (buff[2] == 'C')
 			{
-				ft_putchar('C');
 				tmp->cursor_on = 0;
 				if (tmp->next != NULL)
 					tmp = tmp->next;
@@ -210,7 +247,6 @@ int		get_key(t_node **list)
 			}
 			else if (buff[2] == 'D')
 			{
-				ft_putchar('D');
 				tmp->cursor_on = 0; // gauche
 				if (tmp->prev != NULL)
 					tmp = tmp->prev;
@@ -221,20 +257,20 @@ int		get_key(t_node **list)
 			else if (buff[2] == 'A')
 				; // haut*/
 		}
-		else if (buff[0] == ' ')
+		if (buff[0] == ' ' && tmp->cursor_on == 1)
 		{
 			if (tmp->highlight == 1)
 				tmp->highlight = 0;
-			else
+			else if (tmp->highlight == 0)
 				tmp->highlight = 1;
-		/*	tmp->cursor_on = 0;
+			tmp->cursor_on = 0;
+			if (tmp->next != NULL)
 			tmp = tmp->next;
-			tmp->cursor_on = 1;*/
+			tmp->cursor_on = 1;
 		}
-		else if (buff[0] == 4)
+		if (buff[0] == 127)
 		{
-			ft_putendl("Ctlr + d");
-			return (0);
+			del_node(&tmp, &feature_list);
 		}
 	return (0);
 }
@@ -266,10 +302,8 @@ int	main(int argc, char **argv, char **env)
 	tputs(res, 0, my_outc);
 	while (1)
 	{
-		res = tgetstr("cm", NULL);
-		tputs(res, 0, my_outc);
 		show_list(list, feature_list, name_term, len_max_word);
-		get_key(&list);
+		get_key(&list, &feature_list);
 	}
 	return (0);
 }
